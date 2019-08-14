@@ -433,7 +433,10 @@ class IOManager(object):
         if line_number:
             command = f"{viewer} +{line_number} {file_path}"
         else:
-            command = f"{viewer} {file_path}"
+            if application == "timidity":
+                command = f"{viewer} --output-24bit -A120 {file_path}"
+            else:
+                command = f"{viewer} {file_path}"
         if not test:
             IOManager.spawn_subprocess(command)
 
