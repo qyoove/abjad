@@ -454,7 +454,10 @@ class IOManager(AbjadObject):
         if line_number:
             command = '{} +{} {}'.format(viewer, line_number, file_path)
         else:
-            command = '{} {}'.format(viewer, file_path)
+            if application == 'timidity':
+                command = '{} --output-24bit -A120 {}'.format(viewer, file_path)
+            else:
+                command = '{} {}'.format(viewer, file_path)
         IOManager.spawn_subprocess(command)
 
     @staticmethod
