@@ -44,63 +44,19 @@ class Selection(collections.abc.Sequence):
 
     ..  container:: example
 
-        Selects runs:
+        >>> string = r"c'4 \times 2/3 { d'8 r8 e'8 } r16 f'16 g'8 a'4"
+        >>> staff = abjad.Staff(string)
+        >>> abjad.setting(staff).auto_beaming = False
+        >>> abjad.show(staff) # doctest: +SKIP
 
-        ..  container:: example
+        >>> result = abjad.select(staff).runs()
 
-            >>> string = r"c'4 \times 2/3 { d'8 r8 e'8 } r16 f'16 g'8 a'4"
-            >>> staff = abjad.Staff(string)
-            >>> abjad.setting(staff).auto_beaming = False
-            >>> abjad.show(staff) # doctest: +SKIP
-
-            >>> result = abjad.select(staff).runs()
-
-            >>> for item in result:
-            ...     item
-            ...
-            Selection([Note("c'4"), Note("d'8")])
-            Selection([Note("e'8")])
-            Selection([Note("f'16"), Note("g'8"), Note("a'4")])
-
-        ..  container:: example expression
-
-            >>> selector = abjad.select().runs()
-            >>> result = selector(staff)
-
-            >>> selector.print(result)
-            Selection([Note("c'4"), Note("d'8")])
-            Selection([Note("e'8")])
-            Selection([Note("f'16"), Note("g'8"), Note("a'4")])
-
-            >>> selector.color(result)
-            >>> abjad.show(staff) # doctest: +SKIP
-
-        ..  docs::
-
-            >>> abjad.f(staff, strict=89)
-            \new Staff
-            \with
-            {
-                autoBeaming = ##f
-            }
-            {
-                \abjad-color-music #'red
-                c'4
-                \times 2/3 {
-                    \abjad-color-music #'red
-                    d'8
-                    r8
-                    \abjad-color-music #'blue
-                    e'8
-                }
-                r16
-                \abjad-color-music #'red
-                f'16
-                \abjad-color-music #'red
-                g'8
-                \abjad-color-music #'red
-                a'4
-            }
+        >>> for item in result:
+        ...     item
+        ...
+        Selection([Note("c'4"), Note("d'8")])
+        Selection([Note("e'8")])
+        Selection([Note("f'16"), Note("g'8"), Note("a'4")])
 
     """
 
@@ -2294,7 +2250,6 @@ class Selection(collections.abc.Sequence):
                     a'8
                 }
 
-        Returns new selection (or expression).
         """
         if self._expression:
             return self._update_expression(inspect.currentframe())
@@ -6235,7 +6190,6 @@ class Selection(collections.abc.Sequence):
                     a'4
                 }
 
-        Returns new selection (or expression).
         '''
         if self._expression:
             return self._update_expression(
@@ -9385,12 +9339,133 @@ class Selection(collections.abc.Sequence):
                     \sustainOn
                 }
 
-        Returns new selection (or expression).
+        ..  container:: example
+
+            REGRESSION. Works with grace note (and containers):
+
+            >>> staff = abjad.Staff("c'4 d' e' f'")
+            >>> container = abjad.GraceContainer("cs'16")
+            >>> abjad.attach(container, staff[1])
+            >>> container = abjad.OnBeatGraceContainer("g'16 gs' a' as'")
+            >>> abjad.slur(container[:])
+            >>> abjad.attach(abjad.Articulation(">"), container[0])
+            >>> abjad.attach(container, staff[2])
+            >>> container = abjad.AfterGraceContainer("fs'16")
+            >>> abjad.attach(container, staff[3])
+            >>> abjad.show(staff) # doctest: +SKIP
+
+            ..  docs::
+
+                >>> abjad.f(staff)
+                \new Staff
+                {
+                    c'4
+                    \grace {
+                        cs'16
+                    }
+                    d'4
+                    <<
+                        {
+                            \set fontSize = #-2
+                            \once \override NoteColumn.force-hshift = 0.2
+                            \slash
+                            <g' \tweak Accidental.stencil ##f e'>16 * 1
+                            - \accent
+                            (
+                            gs'16 * 1
+                            a'16 * 1
+                            as'16 * 1
+                            )
+                        }
+                    \\
+                        e'4
+                    >>
+                    \afterGrace
+                    f'4
+                    {
+                        fs'16
+                    }
+                }
+
+            ..  container:: example
+
+                >>> prototype = (
+                ...     abjad.GraceContainer,
+                ...     abjad.OnBeatGraceContainer,
+                ...     abjad.AfterGraceContainer,
+                ... )
+                >>> containers = abjad.select(staff).components(prototype)
+                >>> selector = abjad.select().leaves().with_next_leaf()
+                >>> result = containers.map(selector)
+
+                >>> for item in result:
+                ...     item
+                ...
+                Selection([Note("cs'16"), Note("d'4")])
+                Selection([Note("<g' \\tweak Accidental.stencil ##f e'>16 * 1"), Note("gs'16 * 1"), Note("a'16 * 1"), Note("as'16 * 1"), Note("e'4")])
+                Selection([Note("fs'16")])
+
+            ..  container:: example expression
+
+                >>> containers = abjad.select().components(prototype)
+                >>> selector = abjad.select().leaves().with_next_leaf()
+                >>> selector = containers.map(selector)
+                >>> result = selector(staff)
+
+                >>> selector.print(result)
+                Selection([Note("cs'16"), Note("d'4")])
+                Selection([Note("<g' \\tweak Accidental.stencil ##f e'>16 * 1"), Note("gs'16 * 1"), Note("a'16 * 1"), Note("as'16 * 1"), Note("e'4")])
+                Selection([Note("fs'16")])
+
+                >>> selector.color(result)
+                >>> abjad.show(staff) # doctest: +SKIP
+
+            ..  docs::
+
+                >>> abjad.f(staff, strict=89)
+                \new Staff
+                {
+                    c'4
+                    \grace {
+                        \abjad-color-music #'red
+                        cs'16
+                    }
+                    \abjad-color-music #'red
+                    d'4
+                    <<
+                        {
+                            \set fontSize = #-2
+                            \once \override NoteColumn.force-hshift = 0.2
+                            \slash
+                            \abjad-color-music #'blue
+                            <g' \tweak Accidental.stencil ##f e'>16 * 1
+                            - \accent
+                            (
+                            \abjad-color-music #'blue
+                            gs'16 * 1
+                            \abjad-color-music #'blue
+                            a'16 * 1
+                            \abjad-color-music #'blue
+                            as'16 * 1
+                            )
+                        }
+                    \\
+                        \abjad-color-music #'blue
+                        e'4
+                    >>
+                    \afterGrace
+                    f'4
+                    {
+                        \abjad-color-music #'red
+                        fs'16
+                    }
+                }
+
         """
         if self._expression:
             return self._update_expression(inspect.currentframe())
         leaves = list(self.leaves())
-        next_leaf = leaves[-1]._leaf(1)
+        next_leaf = abjad_inspect(leaves[-1]).leaf(1)
         if next_leaf is not None:
             leaves.append(next_leaf)
         return type(self)(leaves)
@@ -9524,11 +9599,134 @@ class Selection(collections.abc.Sequence):
                     f'8
                 }
 
+        ..  container:: example
+
+            REGRESSION. Works with grace note (and containers):
+
+            >>> staff = abjad.Staff("c'4 d' e' f'")
+            >>> container = abjad.GraceContainer("cs'16")
+            >>> abjad.attach(container, staff[1])
+            >>> container = abjad.OnBeatGraceContainer("g'16 gs' a' as'")
+            >>> abjad.slur(container[:])
+            >>> abjad.attach(abjad.Articulation(">"), container[0])
+            >>> abjad.attach(container, staff[2])
+            >>> container = abjad.AfterGraceContainer("fs'16")
+            >>> abjad.attach(container, staff[3])
+            >>> abjad.show(staff) # doctest: +SKIP
+
+            ..  docs::
+
+                >>> abjad.f(staff)
+                \new Staff
+                {
+                    c'4
+                    \grace {
+                        cs'16
+                    }
+                    d'4
+                    <<
+                        {
+                            \set fontSize = #-2
+                            \once \override NoteColumn.force-hshift = 0.2
+                            \slash
+                            <g' \tweak Accidental.stencil ##f e'>16 * 1
+                            - \accent
+                            (
+                            gs'16 * 1
+                            a'16 * 1
+                            as'16 * 1
+                            )
+                        }
+                    \\
+                        e'4
+                    >>
+                    \afterGrace
+                    f'4
+                    {
+                        fs'16
+                    }
+                }
+
+            ..  container:: example
+
+                >>> prototype = (
+                ...     abjad.GraceContainer,
+                ...     abjad.OnBeatGraceContainer,
+                ...     abjad.AfterGraceContainer,
+                ... )
+                >>> containers = abjad.select(staff).components(prototype)
+                >>> selector = abjad.select().leaves().with_previous_leaf()
+                >>> result = containers.map(selector)
+
+                >>> for item in result:
+                ...     item
+                ...
+                Selection([Note("c'4"), Note("cs'16")])
+                Selection([Note("d'4"), Note("<g' \\tweak Accidental.stencil ##f e'>16 * 1"), Note("gs'16 * 1"), Note("a'16 * 1"), Note("as'16 * 1")])
+                Selection([Note("f'4"), Note("fs'16")])
+
+            ..  container:: example expression
+
+                >>> containers = abjad.select().components(prototype)
+                >>> selector = abjad.select().leaves().with_previous_leaf()
+                >>> selector = containers.map(selector)
+                >>> result = selector(staff)
+
+                >>> selector.print(result)
+                Selection([Note("c'4"), Note("cs'16")])
+                Selection([Note("d'4"), Note("<g' \\tweak Accidental.stencil ##f e'>16 * 1"), Note("gs'16 * 1"), Note("a'16 * 1"), Note("as'16 * 1")])
+                Selection([Note("f'4"), Note("fs'16")])
+
+                >>> selector.color(result)
+                >>> abjad.show(staff) # doctest: +SKIP
+
+            ..  docs::
+
+                >>> abjad.f(staff, strict=89)
+                \new Staff
+                {
+                    \abjad-color-music #'red
+                    c'4
+                    \grace {
+                        \abjad-color-music #'red
+                        cs'16
+                    }
+                    \abjad-color-music #'blue
+                    d'4
+                    <<
+                        {
+                            \set fontSize = #-2
+                            \once \override NoteColumn.force-hshift = 0.2
+                            \slash
+                            \abjad-color-music #'blue
+                            <g' \tweak Accidental.stencil ##f e'>16 * 1
+                            - \accent
+                            (
+                            \abjad-color-music #'blue
+                            gs'16 * 1
+                            \abjad-color-music #'blue
+                            a'16 * 1
+                            \abjad-color-music #'blue
+                            as'16 * 1
+                            )
+                        }
+                    \\
+                        e'4
+                    >>
+                    \afterGrace
+                    \abjad-color-music #'red
+                    f'4
+                    {
+                        \abjad-color-music #'red
+                        fs'16
+                    }
+                }
+
         """
         if self._expression:
             return self._update_expression(inspect.currentframe())
         leaves = list(self.leaves())
-        previous_leaf = leaves[0]._leaf(-1)
+        previous_leaf = abjad_inspect(leaves[0]).leaf(-1)
         if previous_leaf is not None:
             leaves.insert(0, previous_leaf)
         return type(self)(leaves)
